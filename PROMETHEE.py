@@ -330,7 +330,7 @@ def optimize_PROM1_original (unit_sigmamu, Fr_sigmamu):
     M.R2 = pyo.Constraint(rule = alpha_neg + beta_neg == 1)
     
     # Restrição tipo 3 -> alfa_pos+beta_pos=1
-    M.R2 = pyo.Constraint(rule = alpha_pos + beta_pos == 1)
+    M.R3 = pyo.Constraint(rule = alpha_pos + beta_pos == 1)
     
     # Restrição de alpha >= 2beta
     #modelo.R3 = pyo.Constraint(rule = modelo.alfa >= modelo.beta)
