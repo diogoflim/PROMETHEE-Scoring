@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import pyomo.environ as pe
+
 
 def PROMETHEE_2(Decision_Matrix, q_thresholds, p_thresholds, scurve_thresholds, weights, pref_functions):
     '''
@@ -59,41 +61,41 @@ def PROMETHEE_2(Decision_Matrix, q_thresholds, p_thresholds, scurve_thresholds, 
     return results, net_flows, pos_flows, neg_flows
 
 
-import pyomo.environ as pyo
+
 def optimize_PROM2_original (unit_sigmamu, Fr_sigmamu):
     #Instanciando Modelo
-    M = pyo.ConcreteModel() # instancia do modelo
+    M = pe.ConcreteModel() # instancia do modelo
 
     # Criando índices
-    I = M.I = pyo.RangeSet(1) # range para a unidade em análise
-    I_fr = M.I_fr = pyo.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
+    I = M.I = pe.RangeSet(1) # range para a unidade em análise
+    I_fr = M.I_fr = pe.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
     
     #Variáveis de Decisão
-    alpha = M.alpha = pyo.Var(within=pyo.NonNegativeReals)
-    beta = M.beta = pyo.Var(within=pyo.NonNegativeReals)
-    zeta = M.zeta = pyo.Var()
+    alpha = M.alpha = pe.Var(within=pe.NonNegativeReals)
+    beta = M.beta = pe.Var(within=pe.NonNegativeReals)
+    zeta = M.zeta = pe.Var()
 
     # Parâmetros
-    Sigma_i = M.Sigma_i = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
-    Mu_i = M.Mu_i = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
-    Sigma_fri = M.Sigma_fri = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
-    Mu_fri = M.Mu_fri = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
+    Sigma_i = M.Sigma_i = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
+    Mu_i = M.Mu_i = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
+    Sigma_fri = M.Sigma_fri = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
+    Mu_fri = M.Mu_fri = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
 
     # Função objetivo
-    obj = M.obj = pyo.Objective(rule = M.zeta, sense= pyo.maximize)
+    obj = M.obj = pe.Objective(rule = M.zeta, sense= pe.maximize)
 
     # Restrição de eficiência
-    M.R1 = pyo.Constraint(I, I_fr, \
+    M.R1 = pe.Constraint(I, I_fr, \
         rule= lambda M, i, i_fr: (alpha * Mu_fri[i_fr] - beta * Sigma_fri[i_fr] + zeta) <= (alpha * Mu_i[i] - beta * Sigma_i[i]))
 
     # Restrição tipo 2 -> alfa+beta=1
-    M.R2 = pyo.Constraint(rule = alpha + beta == 1)
+    M.R2 = pe.Constraint(rule = alpha + beta == 1)
     
     # Restrição de alpha >= 2beta
-    #modelo.R3 = pyo.Constraint(rule = modelo.alfa >= modelo.beta)
+    #modelo.R3 = pe.Constraint(rule = modelo.alfa >= modelo.beta)
 
     # Resolução
-    glpk = pyo.SolverFactory('glpk') # Construindo o solver gurobi
+    glpk = pe.SolverFactory('glpk') # Construindo o solver gurobi
     result = glpk.solve(M)
 
     return M, result
@@ -102,76 +104,76 @@ def optimize_PROM2_original (unit_sigmamu, Fr_sigmamu):
 def optimize_newconstraint (unit_sigmamu, Fr_sigmamu):
     
     #Instanciando Modelo
-    M = pyo.ConcreteModel() # instancia do modelo
+    M = pe.ConcreteModel() # instancia do modelo
     
     # Criando índices
-    I = M.I = pyo.RangeSet(1) # range para a unidade em análise
-    I_fr = M.I_fr = pyo.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
+    I = M.I = pe.RangeSet(1) # range para a unidade em análise
+    I_fr = M.I_fr = pe.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
     
     #Variáveis de Decisão
-    alpha = M.alpha = pyo.Var(within=pyo.NonNegativeReals)
-    beta = M.beta = pyo.Var(within=pyo.NonNegativeReals)
-    zeta = M.zeta = pyo.Var()
+    alpha = M.alpha = pe.Var(within=pe.NonNegativeReals)
+    beta = M.beta = pe.Var(within=pe.NonNegativeReals)
+    zeta = M.zeta = pe.Var()
 
     # Parâmetros
-    Sigma_i = M.Sigma_i = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
-    Mu_i = M.Mu_i = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
-    Sigma_fri = M.Sigma_fri = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
-    Mu_fri = M.Mu_fri = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
+    Sigma_i = M.Sigma_i = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
+    Mu_i = M.Mu_i = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
+    Sigma_fri = M.Sigma_fri = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
+    Mu_fri = M.Mu_fri = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
 
     # Função objetivo
-    obj = M.obj = pyo.Objective(rule = M.zeta, sense= pyo.maximize)
+    obj = M.obj = pe.Objective(rule = M.zeta, sense= pe.maximize)
 
     # Restrição de eficiência
-    M.R1 = pyo.Constraint(I, I_fr, \
+    M.R1 = pe.Constraint(I, I_fr, \
         rule= lambda M, i, i_fr: (alpha * Mu_fri[i_fr] - beta * Sigma_fri[i_fr] + zeta) <= (alpha * Mu_i[i] - beta * Sigma_i[i]))
 
     # Restrição tipo 2 -> alfa+beta=1
-    M.R2 = pyo.Constraint(rule = alpha + beta == 1)
+    M.R2 = pe.Constraint(rule = alpha + beta == 1)
     
     # Restrição de alpha >= 2beta
-    M.R3 = pyo.Constraint(rule = alpha >= 2 * beta)
+    M.R3 = pe.Constraint(rule = alpha >= 2 * beta)
 
     # Resolução
-    glpk = pyo.SolverFactory('glpk') # Construindo o solver gurobi
+    glpk = pe.SolverFactory('glpk') # Construindo o solver gurobi
     result = glpk.solve(M)
 
     return M, result
 
 def optimize_PROM1_original_pos_flow (unit_sigmamu, Fr_sigmamu):
     #Instanciando Modelo
-    M = pyo.ConcreteModel() # instancia do modelo
+    M = pe.ConcreteModel() # instancia do modelo
 
     # Criando índices
-    I = M.I = pyo.RangeSet(1) # range para a unidade em análise
-    I_fr = M.I_fr = pyo.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
+    I = M.I = pe.RangeSet(1) # range para a unidade em análise
+    I_fr = M.I_fr = pe.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
     
     #Variáveis de Decisão
-    alpha_pos = M.alpha_pos = pyo.Var(within=pyo.NonNegativeReals)
-    beta_pos = M.beta_pos = pyo.Var(within=pyo.NonNegativeReals)
-    zeta_pos = M.zeta_pos = pyo.Var()
+    alpha_pos = M.alpha_pos = pe.Var(within=pe.NonNegativeReals)
+    beta_pos = M.beta_pos = pe.Var(within=pe.NonNegativeReals)
+    zeta_pos = M.zeta_pos = pe.Var()
 
     # Parâmetros
-    Sigma_i_pos = M.Sigma_i_pos = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
-    Mu_i_pos = M.Mu_i_pos = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
-    Sigma_fri_pos = M.Sigma_fri_pos = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
-    Mu_fri_pos = M.Mu_fri_pos = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
+    Sigma_i_pos = M.Sigma_i_pos = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
+    Mu_i_pos = M.Mu_i_pos = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
+    Sigma_fri_pos = M.Sigma_fri_pos = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
+    Mu_fri_pos = M.Mu_fri_pos = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
 
     # Função objetivo
-    obj = M.obj = pyo.Objective(rule = M.zeta_pos, sense= pyo.maximize)
+    obj = M.obj = pe.Objective(rule = M.zeta_pos, sense= pe.maximize)
 
     # Restrição de eficiência
-    M.R1 = pyo.Constraint(I, I_fr, \
+    M.R1 = pe.Constraint(I, I_fr, \
         rule= lambda M, i, i_fr: (alpha_pos * Mu_fri_pos[i_fr] - beta_pos * Sigma_fri_pos[i_fr] + zeta_pos) <= (alpha_pos * Mu_i_pos[i] - beta_pos * Sigma_i_pos[i]))
 
     # Restrição tipo 2 -> alfa+beta=1
-    M.R2 = pyo.Constraint(rule = alpha_pos + beta_pos == 1)
+    M.R2 = pe.Constraint(rule = alpha_pos + beta_pos == 1)
     
     # Restrição de alpha >= 2beta
-    #modelo.R3 = pyo.Constraint(rule = modelo.alfa >= modelo.beta)
+    #modelo.R3 = pe.Constraint(rule = modelo.alfa >= modelo.beta)
 
     # Resolução
-    glpk = pyo.SolverFactory('glpk') # Construindo o solver gurobi
+    glpk = pe.SolverFactory('glpk') # Construindo o solver gurobi
     result = glpk.solve(M)
 
     return M, result
@@ -179,76 +181,76 @@ def optimize_PROM1_original_pos_flow (unit_sigmamu, Fr_sigmamu):
 def optimize_newconstraint_pos_flow (unit_sigmamu, Fr_sigmamu):
     
     #Instanciando Modelo
-    M = pyo.ConcreteModel() # instancia do modelo
+    M = pe.ConcreteModel() # instancia do modelo
     
     # Criando índices
-    I = M.I = pyo.RangeSet(1) # range para a unidade em análise
-    I_fr = M.I_fr = pyo.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
+    I = M.I = pe.RangeSet(1) # range para a unidade em análise
+    I_fr = M.I_fr = pe.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
     
     #Variáveis de Decisão
-    alpha_pos = M.alpha_pos = pyo.Var(within=pyo.NonNegativeReals)
-    beta_pos = M.beta_pos = pyo.Var(within=pyo.NonNegativeReals)
-    zeta_pos = M.zeta_pos = pyo.Var()
+    alpha_pos = M.alpha_pos = pe.Var(within=pe.NonNegativeReals)
+    beta_pos = M.beta_pos = pe.Var(within=pe.NonNegativeReals)
+    zeta_pos = M.zeta_pos = pe.Var()
 
     # Parâmetros
-    Sigma_i_pos = M.Sigma_i_pos = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
-    Mu_i_pos = M.Mu_i_pos = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
-    Sigma_fri_pos = M.Sigma_fri_pos = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
-    Mu_fri_pos = M.Mu_fri_pos = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
+    Sigma_i_pos = M.Sigma_i_pos = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
+    Mu_i_pos = M.Mu_i_pos = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
+    Sigma_fri_pos = M.Sigma_fri_pos = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
+    Mu_fri_pos = M.Mu_fri_pos = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
 
     # Função objetivo
-    obj = M.obj = pyo.Objective(rule = M.zeta_pos, sense= pyo.maximize)
+    obj = M.obj = pe.Objective(rule = M.zeta_pos, sense= pe.maximize)
 
     # Restrição de eficiência
-    M.R1 = pyo.Constraint(I, I_fr, \
+    M.R1 = pe.Constraint(I, I_fr, \
         rule= lambda M, i, i_fr: (alpha_pos * Mu_fri_pos[i_fr] - beta_pos * Sigma_fri_pos[i_fr] + zeta_pos) <= (alpha_pos * Mu_i_pos[i] - beta_pos * Sigma_i_pos[i]))
 
     # Restrição tipo 2 -> alfa+beta=1
-    M.R2 = pyo.Constraint(rule = alpha_pos + beta_pos == 1)
+    M.R2 = pe.Constraint(rule = alpha_pos + beta_pos == 1)
     
     # Restrição de alpha >= 2beta
-    M.R3 = pyo.Constraint(rule = alpha_pos >= 2 * beta_pos)
+    M.R3 = pe.Constraint(rule = alpha_pos >= 2 * beta_pos)
 
     # Resolução
-    glpk = pyo.SolverFactory('glpk') # Construindo o solver gurobi
+    glpk = pe.SolverFactory('glpk') # Construindo o solver gurobi
     result = glpk.solve(M)
 
     return M, result
 
 def optimize_PROM1_original_neg_flow (unit_sigmamu, Fr_sigmamu):
     #Instanciando Modelo
-    M = pyo.ConcreteModel() # instancia do modelo
+    M = pe.ConcreteModel() # instancia do modelo
 
     # Criando índices
-    I = M.I = pyo.RangeSet(1) # range para a unidade em análise
-    I_fr = M.I_fr = pyo.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
+    I = M.I = pe.RangeSet(1) # range para a unidade em análise
+    I_fr = M.I_fr = pe.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
     
     #Variáveis de Decisão
-    alpha_neg = M.alpha_neg = pyo.Var(within=pyo.NonNegativeReals)
-    beta_neg = M.beta_neg = pyo.Var(within=pyo.NonNegativeReals)
-    zeta_neg = M.zeta_neg = pyo.Var()
+    alpha_neg = M.alpha_neg = pe.Var(within=pe.NonNegativeReals)
+    beta_neg = M.beta_neg = pe.Var(within=pe.NonNegativeReals)
+    zeta_neg = M.zeta_neg = pe.Var()
 
     # Parâmetros
-    Sigma_i_neg = M.Sigma_i_neg = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
-    Mu_i_neg = M.Mu_i_neg = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
-    Sigma_fri_neg = M.Sigma_fri_neg = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
-    Mu_fri_neg = M.Mu_fri_neg = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
+    Sigma_i_neg = M.Sigma_i_neg = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
+    Mu_i_neg = M.Mu_i_neg = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
+    Sigma_fri_neg = M.Sigma_fri_neg = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
+    Mu_fri_neg = M.Mu_fri_neg = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
 
     # Função objetivo
-    obj = M.obj = pyo.Objective(rule = M.zeta_neg, sense= pyo.maximize)
+    obj = M.obj = pe.Objective(rule = M.zeta_neg, sense= pe.maximize)
 
     # Restrição de eficiência
-    M.R1 = pyo.Constraint(I, I_fr, \
+    M.R1 = pe.Constraint(I, I_fr, \
         rule= lambda M, i, i_fr: (alpha_neg * Mu_fri_neg[i_fr] - beta_neg * Sigma_fri_neg[i_fr] + zeta_neg) <= (alpha_neg * Mu_i_neg[i] - beta_neg * Sigma_i_neg[i]))
 
     # Restrição tipo 2 -> alfa+beta=1
-    M.R2 = pyo.Constraint(rule = alpha_neg + beta_neg == 1)
+    M.R2 = pe.Constraint(rule = alpha_neg + beta_neg == 1)
     
     # Restrição de alpha >= 2beta
-    #modelo.R3 = pyo.Constraint(rule = modelo.alfa >= modelo.beta)
+    #modelo.R3 = pe.Constraint(rule = modelo.alfa >= modelo.beta)
 
     # Resolução
-    glpk = pyo.SolverFactory('glpk') # Construindo o solver gurobi
+    glpk = pe.SolverFactory('glpk') # Construindo o solver gurobi
     result = glpk.solve(M)
 
     return M, result
@@ -257,86 +259,86 @@ def optimize_PROM1_original_neg_flow (unit_sigmamu, Fr_sigmamu):
 def optimize_newconstraint_neg_flow (unit_sigmamu, Fr_sigmamu):
     
     #Instanciando Modelo
-    M = pyo.ConcreteModel() # instancia do modelo
+    M = pe.ConcreteModel() # instancia do modelo
     
     # Criando índices
-    I = M.I = pyo.RangeSet(1) # range para a unidade em análise
-    I_fr = M.I_fr = pyo.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
+    I = M.I = pe.RangeSet(1) # range para a unidade em análise
+    I_fr = M.I_fr = pe.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
     
     #Variáveis de Decisão
-    alpha_neg = M.alpha_neg = pyo.Var(within=pyo.NonNegativeReals)
-    beta_neg = M.beta_neg = pyo.Var(within=pyo.NonNegativeReals)
-    zeta_neg = M.zeta_neg = pyo.Var()
+    alpha_neg = M.alpha_neg = pe.Var(within=pe.NonNegativeReals)
+    beta_neg = M.beta_neg = pe.Var(within=pe.NonNegativeReals)
+    zeta_neg = M.zeta_neg = pe.Var()
 
     # Parâmetros
-    Sigma_i_neg = M.Sigma_i_neg = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
-    Mu_i_neg = M.Mu_i_neg = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
-    Sigma_fri_neg = M.Sigma_fri_neg = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
-    Mu_fri_neg = M.Mu_fri_neg = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
+    Sigma_i_neg = M.Sigma_i_neg = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
+    Mu_i_neg = M.Mu_i_neg = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
+    Sigma_fri_neg = M.Sigma_fri_neg = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
+    Mu_fri_neg = M.Mu_fri_neg = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
 
     # Função objetivo
-    obj = M.obj = pyo.Objective(rule = M.zeta_neg, sense= pyo.maximize)
+    obj = M.obj = pe.Objective(rule = M.zeta_neg, sense= pe.maximize)
 
     # Restrição de eficiência
-    M.R1 = pyo.Constraint(I, I_fr, \
+    M.R1 = pe.Constraint(I, I_fr, \
         rule= lambda M, i, i_fr: (alpha_neg * Mu_fri_neg[i_fr] - beta_neg * Sigma_fri_neg[i_fr] + zeta_neg) <= (alpha_neg * Mu_i_neg[i] - beta_neg * Sigma_i_neg[i]))
 
     # Restrição tipo 2 -> alfa+beta=1
-    M.R2 = pyo.Constraint(rule = alpha_neg + beta_neg == 1)
+    M.R2 = pe.Constraint(rule = alpha_neg + beta_neg == 1)
     
     # Restrição de alpha >= 2beta
-    M.R3 = pyo.Constraint(rule = alpha_neg >= 2 * beta_neg)
+    M.R3 = pe.Constraint(rule = alpha_neg >= 2 * beta_neg)
 
     # Resolução
-    glpk = pyo.SolverFactory('glpk') # Construindo o solver gurobi
+    glpk = pe.SolverFactory('glpk') # Construindo o solver gurobi
     result = glpk.solve(M)
 
     return M, result
 
 def optimize_PROM1_original (unit_sigmamu, Fr_sigmamu):
     #Instanciando Modelo
-    M = pyo.ConcreteModel() # instancia do modelo
+    M = pe.ConcreteModel() # instancia do modelo
 
     # Criando índices
-    I = M.I = pyo.RangeSet(1) # range para a unidade em análise
-    I_fr = M.I_fr = pyo.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
+    I = M.I = pe.RangeSet(1) # range para a unidade em análise
+    I_fr = M.I_fr = pe.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
     
     #Variáveis de Decisão
-    alpha_pos = M.alpha_pos = pyo.Var(within=pyo.NonNegativeReals)
-    beta_pos = M.beta_pos = pyo.Var(within=pyo.NonNegativeReals)
-    alpha_neg = M.alpha_neg = pyo.Var(within=pyo.NonNegativeReals)
-    beta_neg = M.beta_neg = pyo.Var(within=pyo.NonNegativeReals)
-    zeta_p1 = M.zeta_p1 = pyo.Var()
+    alpha_pos = M.alpha_pos = pe.Var(within=pe.NonNegativeReals)
+    beta_pos = M.beta_pos = pe.Var(within=pe.NonNegativeReals)
+    alpha_neg = M.alpha_neg = pe.Var(within=pe.NonNegativeReals)
+    beta_neg = M.beta_neg = pe.Var(within=pe.NonNegativeReals)
+    zeta_p1 = M.zeta_p1 = pe.Var()
 
     # Parâmetros
-    Sigma_i_pos = M.Sigma_i_pos = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
-    Mu_i_pos = M.Mu_i_pos = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
-    Sigma_fri_pos = M.Sigma_fri_pos = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
-    Mu_fri_pos = M.Mu_fri_pos = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
+    Sigma_i_pos = M.Sigma_i_pos = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
+    Mu_i_pos = M.Mu_i_pos = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
+    Sigma_fri_pos = M.Sigma_fri_pos = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
+    Mu_fri_pos = M.Mu_fri_pos = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
     
-    Sigma_i_neg = M.Sigma_i_neg = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
-    Mu_i_neg = M.Mu_i_neg = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
-    Sigma_fri_neg = M.Sigma_fri_neg = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
-    Mu_fri_neg = M.Mu_fri_neg = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
+    Sigma_i_neg = M.Sigma_i_neg = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
+    Mu_i_neg = M.Mu_i_neg = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
+    Sigma_fri_neg = M.Sigma_fri_neg = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
+    Mu_fri_neg = M.Mu_fri_neg = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
 
     # Função objetivo
-    obj = M.obj = pyo.Objective(rule = M.zeta_p1, sense= pyo.maximize)
+    obj = M.obj = pe.Objective(rule = M.zeta_p1, sense= pe.maximize)
 
     # Restrição de eficiência
-    M.R1 = pyo.Constraint(I, I_fr, \
+    M.R1 = pe.Constraint(I, I_fr, \
         rule= lambda M, i, i_fr: (alpha_pos * Mu_fri_pos[i_fr] - alpha_neg * Mu_fri_neg[i_fr] - beta_pos * Sigma_fri_pos[i_fr] - beta_neg * Sigma_fri_neg[i_fr] + zeta_p1) <= (alpha_pos * Mu_i_pos[i] - alpha_neg * Mu_i_neg[i] - beta_pos * Sigma_i_pos[i] - beta_neg * Sigma_i_neg[i]))
 
     # Restrição tipo 2 -> alfa_neg+beta_neg=1
-    M.R2 = pyo.Constraint(rule = alpha_neg + beta_neg == 1)
+    M.R2 = pe.Constraint(rule = alpha_neg + beta_neg == 1)
     
     # Restrição tipo 3 -> alfa_pos+beta_pos=1
-    M.R3 = pyo.Constraint(rule = alpha_pos + beta_pos == 1)
+    M.R3 = pe.Constraint(rule = alpha_pos + beta_pos == 1)
     
     # Restrição de alpha >= 2beta
-    #modelo.R3 = pyo.Constraint(rule = modelo.alfa >= modelo.beta)
+    #modelo.R3 = pe.Constraint(rule = modelo.alfa >= modelo.beta)
 
     # Resolução
-    glpk = pyo.SolverFactory('glpk') # Construindo o solver gurobi
+    glpk = pe.SolverFactory('glpk') # Construindo o solver gurobi
     result = glpk.solve(M)
 
     return M, result
@@ -344,51 +346,51 @@ def optimize_PROM1_original (unit_sigmamu, Fr_sigmamu):
 
 def optimize_PROM1_newconstraint (unit_sigmamu, Fr_sigmamu):
     #Instanciando Modelo
-    M = pyo.ConcreteModel() # instancia do modelo
+    M = pe.ConcreteModel() # instancia do modelo
 
     # Criando índices
-    I = M.I = pyo.RangeSet(1) # range para a unidade em análise
-    I_fr = M.I_fr = pyo.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
+    I = M.I = pe.RangeSet(1) # range para a unidade em análise
+    I_fr = M.I_fr = pe.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
     
     #Variáveis de Decisão
-    alpha_pos = M.alpha_pos = pyo.Var(within=pyo.NonNegativeReals)
-    beta_pos = M.beta_pos = pyo.Var(within=pyo.NonNegativeReals)
-    alpha_neg = M.alpha_neg = pyo.Var(within=pyo.NonNegativeReals)
-    beta_neg = M.beta_neg = pyo.Var(within=pyo.NonNegativeReals)
-    zeta_p1 = M.zeta_p1 = pyo.Var()
+    alpha_pos = M.alpha_pos = pe.Var(within=pe.NonNegativeReals)
+    beta_pos = M.beta_pos = pe.Var(within=pe.NonNegativeReals)
+    alpha_neg = M.alpha_neg = pe.Var(within=pe.NonNegativeReals)
+    beta_neg = M.beta_neg = pe.Var(within=pe.NonNegativeReals)
+    zeta_p1 = M.zeta_p1 = pe.Var()
 
     # Parâmetros
-    Sigma_i_pos = M.Sigma_i_pos = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
-    Mu_i_pos = M.Mu_i_pos = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
-    Sigma_fri_pos = M.Sigma_fri_pos = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
-    Mu_fri_pos = M.Mu_fri_pos = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
+    Sigma_i_pos = M.Sigma_i_pos = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
+    Mu_i_pos = M.Mu_i_pos = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
+    Sigma_fri_pos = M.Sigma_fri_pos = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
+    Mu_fri_pos = M.Mu_fri_pos = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
     
-    Sigma_i_neg = M.Sigma_i_neg = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
-    Mu_i_neg = M.Mu_i_neg = pyo.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
-    Sigma_fri_neg = M.Sigma_fri_neg = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
-    Mu_fri_neg = M.Mu_fri_neg = pyo.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
+    Sigma_i_neg = M.Sigma_i_neg = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
+    Mu_i_neg = M.Mu_i_neg = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
+    Sigma_fri_neg = M.Sigma_fri_neg = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
+    Mu_fri_neg = M.Mu_fri_neg = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
 
     # Função objetivo
-    obj = M.obj = pyo.Objective(rule = M.zeta_p1, sense= pyo.maximize)
+    obj = M.obj = pe.Objective(rule = M.zeta_p1, sense= pe.maximize)
 
     # Restrição de eficiência
-    M.R1 = pyo.Constraint(I, I_fr, \
+    M.R1 = pe.Constraint(I, I_fr, \
         rule= lambda M, i, i_fr: (alpha_pos * Mu_fri_pos[i_fr] - alpha_neg * Mu_fri_neg[i_fr] - beta_pos * Sigma_fri_pos[i_fr] - beta_neg * Sigma_fri_neg[i_fr] + zeta_p1) <= (alpha_pos * Mu_i_pos[i] - alpha_neg * Mu_i_neg[i] - beta_pos * Sigma_i_pos[i] - beta_neg * Sigma_i_neg[i]))
 
     # Restrição tipo 2 -> alfa_neg+beta_neg=1
-    M.R2 = pyo.Constraint(rule = alpha_neg + beta_neg == 1)
+    M.R2 = pe.Constraint(rule = alpha_neg + beta_neg == 1)
     
     # Restrição tipo 3 -> alfa_pos+beta_pos=1
-    M.R3 = pyo.Constraint(rule = alpha_pos + beta_pos == 1)
+    M.R3 = pe.Constraint(rule = alpha_pos + beta_pos == 1)
     
      # Restrição de alpha_pos >= 2beta_pos
-    M.R4 = pyo.Constraint(rule = alpha_pos >= 2 * beta_pos)
+    M.R4 = pe.Constraint(rule = alpha_pos >= 2 * beta_pos)
     
      # Restrição de alpha_neg >= 2beta_neg
-    M.R5 = pyo.Constraint(rule = alpha_neg >= 2 * beta_neg)
+    M.R5 = pe.Constraint(rule = alpha_neg >= 2 * beta_neg)
     
     # Resolução
-    glpk = pyo.SolverFactory('glpk') # Construindo o solver gurobi
+    glpk = pe.SolverFactory('glpk') # Construindo o solver gurobi
     result = glpk.solve(M)
 
     return M, result
