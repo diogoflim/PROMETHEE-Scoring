@@ -101,6 +101,46 @@ def optimize_PROM2_original (unit_sigmamu, Fr_sigmamu):
     return M, result
 
 
+def optimize_PROM2_original_positive_beta (unit_sigmamu, Fr_sigmamu):
+    #Instanciando Modelo
+    M = pe.ConcreteModel() # instancia do modelo
+
+    # Criando índices
+    I = M.I = pe.RangeSet(1) # range para a unidade em análise
+    I_fr = M.I_fr = pe.RangeSet(Fr_sigmamu.shape[0]) # Range for alternatives in fr
+    
+    #Variáveis de Decisão
+    alpha = M.alpha = pe.Var(within=pe.NonNegativeReals)
+    beta = M.beta = pe.Var(within=pe.NonNegativeReals)
+    zeta = M.zeta = pe.Var()
+
+    # Parâmetros
+    Sigma_i = M.Sigma_i = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 0])
+    Mu_i = M.Mu_i = pe.Param (I, initialize = lambda M, i: unit_sigmamu[i-1 , 1])
+    Sigma_fri = M.Sigma_fri = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 0])
+    Mu_fri = M.Mu_fri = pe.Param (I_fr, initialize = lambda M, i: Fr_sigmamu[i-1 , 1])
+
+    # Função objetivo
+    obj = M.obj = pe.Objective(rule = M.zeta, sense= pe.maximize)
+
+    # Restrição de eficiência
+    M.R1 = pe.Constraint(I, I_fr, \
+        rule= lambda M, i, i_fr: (alpha * Mu_fri[i_fr] + beta * Sigma_fri[i_fr] + zeta) <= (alpha * Mu_i[i] + beta * Sigma_i[i]))
+
+    # Restrição tipo 2 -> alfa+beta=1
+    M.R2 = pe.Constraint(rule = alpha + beta == 1)
+    
+    # Restrição de alpha >= 2beta
+    #modelo.R3 = pe.Constraint(rule = modelo.alfa >= modelo.beta)
+
+    # Resolução
+    glpk = pe.SolverFactory('glpk') # Construindo o solver gurobi
+    result = glpk.solve(M)
+
+    return M, result
+
+
+
 def optimize_newconstraint (unit_sigmamu, Fr_sigmamu):
     
     #Instanciando Modelo
