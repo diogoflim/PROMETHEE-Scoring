@@ -141,7 +141,7 @@ def optimize_PROM2_original_positive_beta (unit_sigmamu, Fr_sigmamu):
 
 
 
-def optimize_newconstraint (unit_sigmamu, Fr_sigmamu):
+def optimize_newconstraint (unit_sigmamu, Fr_sigmamu, my_lambda):
     
     #Instanciando Modelo
     M = pe.ConcreteModel() # instancia do modelo
@@ -172,13 +172,15 @@ def optimize_newconstraint (unit_sigmamu, Fr_sigmamu):
     M.R2 = pe.Constraint(rule = alpha + beta == 1)
     
     # Restrição de alpha >= 2beta
-    M.R3 = pe.Constraint(rule = alpha >= 2 * beta)
+    M.R3 = pe.Constraint(rule = alpha >= my_lambda * beta)
 
     # Resolução
     glpk = pe.SolverFactory('glpk') # Construindo o solver gurobi
     result = glpk.solve(M)
 
     return M, result
+
+
 
 def optimize_PROM1_original_pos_flow (unit_sigmamu, Fr_sigmamu):
     #Instanciando Modelo
